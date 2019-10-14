@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+    <title>Document</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/redux/4.0.4/redux.js"></script>
+  </head>
+  <body>
+    <style>
+      .container {
+        border: 5px solid black;
+        padding: 10px;
+      }
+    </style>
+    <div id="red"></div>
+    <div id="blue"></div>
+    <div id="green"></div>
+    <script>
+      /*
+        * 리덕스 (5.1)
+        * 1. store를 생성한다. 그런데 생성할 때는 리듀서 함수가 필요하다.
+          >> var store = Redux.createStore(reducer function); // store를 생성해서 store라는 이름의 변수에 넣는다.
+        * 2. reducer라는 함수를 생성한다. 이 함수는 기존의(이전의) state값과 action을 받아서 state를 변화시킨 후에 새로운 state를 리턴한다.
+          >> function reducer(state, action) { ... return {state}}
+        * 3. html에서 state값을 받아올 때는 getState함수를 이용한다.
+          >> store.getState(); : store에 저장되어 있는 state를 리턴한다.
+      */
+
+      /*
+       * 리덕스(5.2)
+       * dispatch가 action을 받고, 그 액션을 리듀서에게 전달한다. store.dispatch()함수를 통해서 전달한다.
+       * dispatch함수를 사용할 때에는 객체가 하나 필요한데, 그 객체에는 type이 꼭 필요하다.
+          >> store.dispatch({type : 'CHANGE_COLOR', color : 'red'});
+          >> 여기서 action : {type:'CHANGE_COLOR', color : 'red'}
+       * 리듀서 함수에서 state값을 바꾸기 위해 직접 접근하는 것 보단 새로운 객체를 만들어서 그 새로운 객체의 state를 변경한 후
+       * 그 새로운 객체를 리턴하는 것이 undo redo하기에 좋다.
+          >> var newState = Object.assign({} // 빈 객체, state // 기존 state, {color : 'red'} // 바꿀 state);
+          >> return newState;
+       */
+
+      /*
+        * 리덕스 (5.3)
+        * subscribe함수를 이용해서 state값이 바뀔 때 마다 render를 재호출 한다.
+          >> store.subscribe(render function);
+        * subscribe를 이용하면 state값이 바뀔 때 마다 subscribe안의 함수가 재호출된다.
+        * 리덕스가 없을때는 red, blue, green간에 서로 강력하게 연결되어 있다.
+        * 그래서 모듈이 하나 더 생기게 되면 기존의 모든 모듈의 코드를 수정해야 된다 >> 강하게 coupling되어있다.
+        * 
+        * 그런데 리덕스를 사용하면 dispatch를 통해서 상태가 어떻게 바껴야 할 지 만 알려주고 subscribe를 이용하면
+        * 각각의 모듈은 다른 모듈과 독립적이게 된다. (blue라는 컴포넌트 내부에는 red, green과 관련된 코드가 하나도 없다)
+       */
+
+      // reducer는 기존의(이전의) state값과 action을 받는다. action은 dispatch를 통해 들어온다.
+      // 리듀서는 이전의 state와 action을 받아서 새로운 state를 리턴해준다.
+      function reducer(state, action) {
+        console.log(state, action);
+        if (state === undefined) {
+          // initial State 적용
+          return { color: "yellow" };
+        }
+
+        if (action.type === "CHANGE_COLOR") {
+          // state의 객체들이 빈 객체 {}에 복사되어 리턴된 새로운 객체를 newState에 할당한다.
+          var newState = Object.assign({}, state, { color: action.color });
+        }
+        return newState; // 새로운 state를 리턴해준다.
+        // 그래서 각각의 객체들이 독립적으로 존재하게 된다.
+      }
+      // state를 복사해서 그 복사본의 값을 바꾼 후에 그 복사본을 리턴한다 >> 왜냐하면 undo redo를 쉽게 하기 위해
+
+      var store = Redux.createStore(reducer); // store가 store라는 전역번수에 저장된다.
+      console.log(store.getState()); // >> 처음에는 state에 아무것도 하지 않았기 때문에 init state가 출력된다. >> color : yellow
+      /*-------------------------------------------------------------------------------------------------------------------*/
+      function red() {
+        var state = store.getState(); // state를 가져올 때는 getState를 사용한다.
+        document.querySelector("#red").innerHTML = `
+                    <div class="container" id="component_red" style="background-color:${state.color}">
+                        <h1>red</h1>
+                        <input type="button" value="fire" onclick="
+                        store.dispatch({type:'CHANGE_COLOR', color : 'red'});
+                       ">
+                    </div>
+                `;
+      }
+      // state값이 바뀔 때 마다 red함수를 호출해서 render를 다시 해야한다.
+      // subscribe를 이용해서 red를 재 호출한다.
+      store.subscribe(red); // state가 바뀔 때 마다 red함수가 재 호출된다.
+      red();
+
+      /*-------------------------------------------------------------------------------------------------------------------*/
+      function blue() {
+        var state = store.getState();
+        document.querySelector("#blue").innerHTML = `
+                    <div class="container" id="component_blue" style="background-color:${state.color}">
+                        <h1>blue</h1>
+                        <input type="button" value="fire" onclick="
+                        store.dispatch({type:'CHANGE_COLOR', color : 'blue'});
+                       ">
+                    </div>
+                `;
+      }
+
+      store.subscribe(blue);
+      blue();
+
+      /*-------------------------------------------------------------------------------------------------------------------*/
+      function green() {
+        var state = store.getState();
+        document.querySelector("#green").innerHTML = `
+                    <div class="container" id="component_green" style="background-color:${state.color}">
+                        <h1>green</h1>
+                        <input type="button" value="fire" onclick="
+                        store.dispatch({type:'CHANGE_COLOR', color : 'green'});
+                       ">
+                    </div>
+                `;
+      }
+
+      store.subscribe(green);
+      green();
+    </script>
+  </body>
+</html>
